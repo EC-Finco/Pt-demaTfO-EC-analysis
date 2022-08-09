@@ -49,7 +49,7 @@ from scipy.signal import find_peaks, peak_prominences, peak_widths
 
 import os
 import glob
-
+import math
 # Stop message from appearing
 import warnings
 
@@ -60,14 +60,14 @@ warnings.filterwarnings("ignore", ".*No labelled objects found.*")
 # insert the path of the spectra
 path_in = input("Type the path of CV: ")
 os.chdir(path_in)
-new_folders = input("create new folders for code output? [y/n] \t")
+new_folders = input("create new folders for code output? [y/n]\t")
 path_smoothed, path_peaks = paths.folders_out(path_in, new_folders)
-export = input("Export files? [y/n] \t")
+export = input("Export files? [y/n]\t")
 # Find relevant CVs in folder
 cv_result = [i for i in glob.glob('cv*.txt')]  # only case-insensitive in Windows
-
+diam = float(input("Input electrode diameter in millimiters:\t"))
+Area = math.pi * (diam/20)**2  # area in cm^2
 mode_RS = input("Do you want to apply a concentration-current study? [y/n]\n")
 if mode_RS == 'y':
-    vol_in = input("Insert the initial volume of the electrolyte in mL: ")
-    modes.Randles_Sevcik(path_in, cv_result, export, vol_in)
-
+    vol_in = input("Insert the initial volume of the electrolyte in mL:\t")
+    modes.Randles_Sevcik(path_in, cv_result, export, vol_in, Area)
