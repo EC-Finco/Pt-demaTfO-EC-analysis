@@ -4,8 +4,12 @@ def folders_out(path_in, new_folders="n"):
     if new_folders == "y":
         path_smoothed = path_in + "/preprocessed CVs/"
         path_peaks = path_in + "/peak data/"
+        path_fits = path_in + "/fittings/"
+        path_CVs = path_in + "/CV-plots/"
         os.mkdir(path_smoothed)
         os.mkdir(path_peaks)
+        os.mkdir(path_fits)
+        os.mkdir(path_CVs)
     else:
         path_smoothed = path_in + "/preprocessed CVs/"
         path_peaks = path_in + "/peak data/"

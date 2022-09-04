@@ -56,7 +56,6 @@ import warnings
 warnings.filterwarnings("ignore", ".*GUI is implemented.*")
 warnings.filterwarnings("ignore", ".*No labelled objects found.*")
 
-
 # insert the path of the spectra
 path_in = input("Type the path of CV: ")
 os.chdir(path_in)

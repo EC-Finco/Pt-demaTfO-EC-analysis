@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import pandas as pd
 import glob
@@ -9,12 +11,15 @@ from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 import paths
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import statsmodels.api as smapi
 
 
 def preproc(path_in, file_input, area):
     path_file = path_in + "/" + file_input
-    cv = pd.read_csv(path_file, delimiter="	", header=1, names=["E", "I"], engine='python', skipfooter=1)
+    cv = pd.read_csv(path_file, delimiter="	", usecols=['Potential applied (V)', 'WE(1).Current (A)']
+                    , engine='python', skipfooter=1)
+    cv.columns = ["E", "I"]
     cv['j'] = uniform_filter1d(cv.I, 10) / area
     # calculating derivatives
     dE = np.diff(cv.E)
@@ -28,12 +33,6 @@ def preproc(path_in, file_input, area):
     cv['dE'] = dE
     cv['dj'] = dj
     cv['dj_dE'] = dj_dE
-    # preliminar plot
-    # plt.figure()
-    # plt.plot(cv.E, cv.j, label="current density")
-    # plt.plot(cv.E, cv.I, label="current")
-    # plt.legend()
-    # plt.show()
     return cv
 
 
@@ -59,6 +58,7 @@ def scan_wise(cv):
 
 def peak_finder(cv, inversion, length_scans, scan_dir, file_input):
     n_scans = len(inversion)
+    print(inversion)
     peaks = pd.DataFrame()
     cycle = 0
     for j in range(n_scans - 1):
@@ -145,16 +145,12 @@ def cv_features(cv_result, vol_ini, solute_conc):  # fix this one
 
 
 def scanrate(filename):
-    regex = re.compile(r'\d+ mV s-1')
-    rate = 0
-    y2 = str()
+    regex = re.compile(r'\d+ mV[ ]{0,1}s-1')
     x2 = regex.findall(filename)  # string with uL
     y2 = str(x2[0])
     y2 = y2[:-7]
     rate = int(y2) / 1000  # conversion to V/s
     return rate
-
-
 
 
 def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
@@ -165,13 +161,14 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
     slope_an = np.zeros((len(vol_solute_list)))
     r2_cat = np.zeros((len(vol_solute_list)))
     r2_an = np.zeros((len(vol_solute_list)))
-    plot_test = "n"  # change to input to turn on cv plotting
+    plot_test = "y"  # change to turn on cv plotting
     for j in vol_solute_list:
         j = str(j)
         l = 0  # index of files with same solute concentration to be analyzed
         for i in cv_result:
             if j in i:  # only runs in files with the same added volume
                 file_input = i
+                print(i)
                 cv = preproc(path_in, file_input, Area)
                 inversion, length_scans, scan_dir = scan_wise(cv)
                 peaks, peak_info[k, :] = peak_finder(cv, inversion, length_scans, scan_dir, file_input)
@@ -184,39 +181,37 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
                     plt.figure()
                     plt.title(file_input)
                     plt.plot(cv.E, cv.j, label="CV data")
-                    plt.plot(peaks.E_pc, peaks.j_pc, "x", label="Cathodic peaks")
+                    # plt.plot(peaks.E_pc, peaks.j_pc, "x", label="Cathodic peaks")
                     plt.plot(peaks.E_pa, peaks.j_pa, "x", label="Anodic peaks")
                     plt.legend()
+                    plt.savefig(file_input.replace('.txt', '.png'))
                     plt.show()
         # peak_same_vol = np.zeros(l)  # initialize array with peaks sampled from CV with the same solute concentration
         peak_same_vol = peak_info[k - l:k, :]  # sampling from the general file
         # first linear regression
-        x1 = peak_same_vol[:, 1]
+        x = peak_same_vol[:, 1]
         y_cat = peak_same_vol[:, 2]
         y_an = peak_same_vol[:, 3]
         # reshaping
-        x = x1.reshape(-1, 1)
-        gen_regr(x, y_cat)
+        # x = x1.reshape(-1, 1)
         # Create linear regression object
-        regr_cat = linear_model.LinearRegression()
-        regr_an = linear_model.LinearRegression()
-        # Train the model using the training sets
-        regr_cat.fit(x, y_cat)
-        regr_an.fit(x, y_an)
+        fit_cat = gen_regr(x, y_cat)
+        fit_an = gen_regr(x, y_an)
         # test the model by using the same training set
-        y_cat_fit = regr_cat.predict(x)
-        y_an_fit = regr_an.predict(x)
+        y_cat_fit = fit_cat.fittedvalues
+        y_an_fit = fit_an.fittedvalues
         if len(peak_same_vol) > 2:
             # calculate R squared for both
-            r2_cat[n_vol] = r2_score(y_cat, y_cat_fit)
-            r2_an[n_vol] = r2_score(y_an, y_an_fit)
+            r2_cat[n_vol] = fit_cat.rsquared_adj
+            r2_an[n_vol] = fit_an.rsquared_adj
         elif len(peak_same_vol) > 1:
             r2_cat[n_vol] = 1
             r2_an[n_vol] = 1
         # extract fitting parameters
-        slope_cat[n_vol] = np.r_[regr_cat.coef_]
-        slope_an[n_vol] = np.r_[regr_an.coef_]
+        slope_cat[n_vol] = fit_cat.params[1]
+        slope_an[n_vol] = fit_an.params[1]
         # plot
+        figure_name = 'Current linearization - ' + str(j) + ' uL.png'
         plt.figure()
         plt.plot(x, y_cat, "x", label="cat peak")  # cathodic plot
         plt.plot(x, y_cat_fit, label="cat fit %.2f" % r2_cat[n_vol])
@@ -225,10 +220,11 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
         plt.xlabel("Square root scan rate [mV/s]^1/2")
         plt.ylabel("Current Density [A]")
         plt.legend()
+        plt.savefig(figure_name)
         plt.show()
         n_vol = n_vol + 1
         k = 0
-        # remove data with low R^2
+    # remove data with low R^2
     conc_cat1 = conc[r2_cat > 0.9]
     conc_an1 = conc[r2_an > 0.9]
     slope_cat = slope_cat[r2_cat > 0.9]
@@ -239,41 +235,46 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
 
 
 def second_regression(conc_cat, conc_an, slope_cat, slope_an):
-    print(slope_cat)
     slope_cat = slope_cat*((8.314*298)**(1/2))/(0.4463*(96485**(1.5)))
     slope_an = slope_an*((8.314*298)**(1/2))/(0.4463*(96485**(1.5)))
-    regr_catRS = linear_model.LinearRegression().fit(conc_cat, slope_cat)
-    regr_anRS = linear_model.LinearRegression().fit(conc_an, slope_an)
-    # test the model by using the same training set
-    y_cat_RS_fit = regr_catRS.predict(conc_cat)
-    y_an_RS_fit = regr_anRS.predict(conc_an)
-    # calculate R squared
-    r2_cat_RS = r2_score(slope_cat, y_cat_RS_fit)
-    r2_an_RS = r2_score(slope_an, y_an_RS_fit)
-    # plot second regression
-    plt.figure()
-    plt.plot(conc_cat, slope_cat, "x", label="cat second fit %.2f" % r2_cat_RS)
-    plt.plot(conc_cat, y_cat_RS_fit)
-    plt.plot(conc_an, slope_an, "x", label="an second fit %.2f" % r2_an_RS)
-    plt.plot(conc_an, y_an_RS_fit)
-    plt.legend()
-    plt.show()
-    RS = np.zeros((2, 3))  # first row cathodic, second row anodic. columns: slopes, intercept, r2
-    RS[0, 0] = regr_catRS.coef_
-    RS[1, 0] = regr_anRS.coef_
-    RS[0, 1] = regr_catRS.intercept_
-    RS[1, 1] = regr_anRS.intercept_
-    RS[0, 2] = r2_cat_RS
-    RS[1, 2] = r2_an_RS
-    return RS
+    regr_catRS = gen_regr(conc_cat, slope_cat)
+    regr_anRS = gen_regr(conc_an, slope_an)
+    second_plot(conc_cat, conc_an, regr_catRS, regr_anRS, slope_cat, slope_an)
+    Dval_cat = regr_catRS.params[1]**2
+    Derr_cat = 2 * regr_catRS.params[1] * regr_catRS.bse[1]
+    C_0val_cat = - regr_catRS.params[0]/regr_catRS.params[1]
+    C_0err_cat = C_0val_cat * ((regr_catRS.bse[1]/regr_catRS.params[1])+(regr_catRS.bse[0]/regr_catRS.params[0]))
+    Dval_an = regr_anRS.params[1]**2
+    Derr_an = 2 * regr_anRS.params[1] * regr_anRS.bse[1]
+    C_0val_an = - regr_anRS.params[0]/regr_anRS.params[1]
+    C_0err_an = C_0val_an * ((regr_anRS.bse[1]/regr_anRS.params[1])+(regr_anRS.bse[0]/regr_anRS.params[0]))
+    columns = ['D Value', 'D Error', 'C_0 Value', 'C_0 Error', 'Adj. R sq.']
+    index = ['Cathodic', 'Anodic']
+    values = [[Dval_cat, Derr_cat, C_0val_cat, C_0err_cat, regr_catRS.rsquared_adj],
+              [Dval_an, Derr_an,C_0val_an, C_0err_an, regr_anRS.rsquared_adj]]
+    RS_df = pd.DataFrame(values, columns=columns, index=index)
+    return RS_df
 
 
 def gen_regr(x, y):  # linear regression with statsmodel, add fitted points
     x = smapi.add_constant(x)  # adding the intercept term
     res_fit = smapi.OLS(y, x).fit()
-    print(type(res_fit.params), res_fit.bse, res_fit.rsquared_adj)
-    res_array = np.atleast_2d()
-    res_array = np.hstack((res_fit.params[0], res_fit.bse[0], res_fit.params[1], res_fit.bse[1], res_fit.rsquared_adj))
-    res_df = pd.DataFrame(res_array)
-    print(res_df, res_array)
-    return res_df
+    return res_fit
+
+
+def second_plot(conc_cat, conc_an, regr_catRS, regr_anRS, slope_cat, slope_an):
+    # plot second regression
+    figurename = 'Second regression plot.png'
+    plt.figure()
+    plt.title('Second regression of the R-S analysis')
+    plt.plot(conc_cat, slope_cat, "x", label="cat second fit, R^{2} = %.2f" % regr_catRS.rsquared_adj)
+    plt.plot(conc_cat, regr_catRS.fittedvalues)
+    plt.plot(conc_an, slope_an, "x", label="an second fit, R^{2} = %.2f" % regr_anRS.rsquared_adj)
+    plt.plot(conc_an, regr_anRS.fittedvalues)
+    ax = plt.gca()
+    plt.xlabel('Concentration [M]')
+    plt.ylabel('$D^{1/2}C [cm M s^{-1/2}]$')
+    plt.legend()
+    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0e'))
+    plt.savefig(figurename)
+    plt.show()
