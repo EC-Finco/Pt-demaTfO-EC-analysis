@@ -66,7 +66,11 @@ export = input("Export files? [y/n]\t")
 cv_result = [i for i in glob.glob('cv*.txt')]  # only case-insensitive in Windows
 diam = float(input("Input electrode diameter in millimiters:\t"))
 Area = math.pi * (diam/20)**2  # area in cm^2
-mode_RS = input("Do you want to apply a concentration-current study? [y/n]\n")
-if mode_RS == 'y':
+mode = input("Select the kind of study that you want to perform: \n\t[CV]-simple CV plotting \n\t[P]-find peaks "
+             "\n\t[L]-linearize current/scan rate relation \n\t[RS]-solute concentration effect \n")
+if mode == 'RS':
     vol_in = input("Insert the initial volume of the electrolyte in mL:\t")
     modes.Randles_Sevcik(path_in, cv_result, export, vol_in, Area)
+if mode == 'CV':
+    modes.cv(path_in, cv_result, export, Area)
+
