@@ -61,7 +61,8 @@ def peak_finder(cv, inversion, length_scans, scan_dir, file_input):
     n_scans = len(inversion)
     peaks = pd.DataFrame()
     cycle = 0
-    for j in range(n_scans - 1):
+    for j in range(n_scans - 2):
+        j = j+1
         index_start = int(inversion[j])
         index_end = int(inversion[j + 1])
         scan = cv.iloc[index_start:index_end]
@@ -215,14 +216,14 @@ def second_regression(conc_cat, conc_an, slope_cat, slope_an):
     regr_catRS = gen_regr(conc_cat, slope_cat)
     regr_anRS = gen_regr(conc_an, slope_an)
     plots.second_plot(conc_cat, conc_an, regr_catRS, regr_anRS, slope_cat, slope_an)
-    Dval_cat = regr_catRS.params[1] ** 2
-    Derr_cat = 2 * regr_catRS.params[1] * regr_catRS.bse[1]
-    C_0val_cat = - regr_catRS.params[0] / regr_catRS.params[1]
-    C_0err_cat = C_0val_cat * ((regr_catRS.bse[1] / regr_catRS.params[1]) + (regr_catRS.bse[0] / regr_catRS.params[0]))
-    Dval_an = regr_anRS.params[1] ** 2
-    Derr_an = 2 * regr_anRS.params[1] * regr_anRS.bse[1]
-    C_0val_an = - regr_anRS.params[0] / regr_anRS.params[1]
-    C_0err_an = C_0val_an * ((regr_anRS.bse[1] / regr_anRS.params[1]) + (regr_anRS.bse[0] / regr_anRS.params[0]))
+    Dval_cat = (regr_catRS.params[1] ** 2)
+    Derr_cat = abs(2 * regr_catRS.params[1] * regr_catRS.bse[1])
+    C_0val_cat = abs(regr_catRS.params[0] / regr_catRS.params[1])
+    C_0err_cat = abs(C_0val_cat * ((regr_catRS.bse[1] / regr_catRS.params[1]) + (regr_catRS.bse[0] / regr_catRS.params[0])))
+    Dval_an = abs(regr_anRS.params[1] ** 2)
+    Derr_an = abs(2 * regr_anRS.params[1] * regr_anRS.bse[1])
+    C_0val_an = abs(- regr_anRS.params[0] / regr_anRS.params[1])
+    C_0err_an = abs(C_0val_an * ((regr_anRS.bse[1] / regr_anRS.params[1]) + (regr_anRS.bse[0] / regr_anRS.params[0])))
     columns = ['D Value', 'D Error', 'C_0 Value', 'C_0 Error', 'Adj. R sq.']
     index = ['Cathodic', 'Anodic']
     values = [[Dval_cat, Derr_cat, C_0val_cat, C_0err_cat, regr_catRS.rsquared_adj],

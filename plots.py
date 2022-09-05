@@ -7,7 +7,6 @@ import statsmodels.api as smapi
 
 def cv_plot(pot, j, filename, export="n", peaks=None, peak_flag="no"):
     # plot cyclic voltammetry and peaks selected
-    print(peaks)
     plt.figure()
     plt.title(filename)
     plt.plot(pot, j*1000, label="CV data")
