@@ -31,11 +31,13 @@ def cvsurvey(path_in, cv_result, export="n", area="1"):
 def randles_sevcik2(path_in, cv_result, export, vol_in, area):
     solute_conc = float(input("Input solute concentration [mol/L]:\t"))
     solute = input('Type the solute species')
-    peaksList = []
+    CVList = []
     for i, filename in enumerate(cv_result):
-        CV = class_def.CyclicVoltammetry(filename, path_in, area, vol_in, solute_conc)
+        CV = class_def.CyclicVoltammetry(filename, path_in, area)
+        CV.solute_conc(vol_in, solute_conc)
         CV.peak_finder()
-        peaksList.append(CV.peaks['j_pc'])
+        CVList.append(CV)
         # plots.cv_plot(CV.cv['E'], CV.cv['j'], CV.filename, path_in)
         # plt.show()
-    print(peaksList[1])
+    for cvs in CVList:  #implement further steps and plots
+        print('Scan rate: {}, solute volume: {}'.format(cvs.rate, cvs.vol_sol))

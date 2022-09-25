@@ -16,7 +16,7 @@ import plots
 
 
 class CyclicVoltammetry:
-    def __init__(self, filename, path_in, area, vol_in, solute_conc):  # not always CV requires vol_in and sol conc.
+    def __init__(self, filename, path_in, area):
         self.peaks = None
         self.conc = None
         self.vol_sol = None
@@ -60,6 +60,8 @@ class CyclicVoltammetry:
         y2 = str(x2[0])
         y2 = y2[:-6]
         self.rate = int(y2) / 1000  # conversion to V/s
+
+    def solute_conc(self, vol_in, solute_conc):
         regex = re.compile(r' \d+ uL')
         regex2 = re.compile(r' \d+uL')
         x = regex.findall(self.filename)  # string with uL
