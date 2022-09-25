@@ -16,6 +16,7 @@ import plots
 
 matplotlib.rc('text', usetex = True)
 
+
 def preproc(path_in, file_input, area):
     path_file = path_in + "/" + file_input
     cv = pd.read_csv(path_file, delimiter="	", usecols=['Potential applied (V)', 'WE(1).Current (A)']
@@ -61,8 +62,8 @@ def peak_finder(cv, inversion, length_scans, scan_dir, file_input):
     n_scans = len(inversion)
     peaks = pd.DataFrame()
     cycle = 0
-    for j in range(n_scans - 2):
-        j = j+1
+    for j in range(n_scans - 1):
+        j = j
         index_start = int(inversion[j])
         index_end = int(inversion[j + 1])
         scan = cv.iloc[index_start:index_end]
@@ -88,6 +89,7 @@ def peak_finder(cv, inversion, length_scans, scan_dir, file_input):
                 peaks.at[cycle, 'j_pc'] = scan.j[peak_index]
             cycle = cycle + 1
     peaks.at[:, 'DE_p'] = peaks['E_pa'][:] - peaks['E_pc'][:]
+    peaks.at[:, 'E1/2'] = (peaks['E_pa'][:] + peaks['E_pc'][:])/2
     peaks.at[:, 'Vol_sol'] = volume_module(file_input)[0]
     peaks.at[:, 'Scan_rate'] = scanrate(file_input)
     peak_info = np.zeros(4)
@@ -150,7 +152,7 @@ def scanrate(filename):
     regex = re.compile(r'\d+ mV[ ]{0,1}s-1')
     x2 = regex.findall(filename)  # string with uL
     y2 = str(x2[0])
-    y2 = y2[:-7]
+    y2 = y2[:-6]
     rate = int(y2) / 1000  # conversion to V/s
     return rate
 
@@ -163,6 +165,7 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
     slope_an = np.zeros((len(vol_solute_list)))
     r2_cat = np.zeros((len(vol_solute_list)))
     r2_an = np.zeros((len(vol_solute_list)))
+    lin_cur = tuple()
     plot_test = "y"  # change to turn on cv plotting
     for j in vol_solute_list:
         j = str(j)
@@ -178,7 +181,9 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
                 if export == 'y':
                     paths.exporter(i, cv, peaks, path_in)
                 if plot_test == "y":  # testing by plotting
-                    plots.cv_plot(cv.E, cv.j, file_input, export, peaks, peak_flag="yes")
+                    plt.figure()
+                    plots.cv_plot(cv.E, cv.j, file_input, path_in, export, peaks, peak_flag="yes")
+                    plt.show()
         peak_same_vol = peak_info[k - l:k, :]  # sampling from the general file
 # first linear regression
         x = peak_same_vol[:, 1]
@@ -197,9 +202,10 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
         slope_an[n_vol] = fit_an.params[1]
         # plot
         figure_name = 'Current linearization - ' + str(j) + ' uL.png'
-        plots.peak_cur_lin_sqrt(x, y_cat, y_an, fit_cat, fit_an, r2_cat[n_vol], r2_an[n_vol], figure_name)
+        plots.peak_cur_lin_sqrt(x, y_cat, y_an, fit_cat, fit_an, r2_cat[n_vol], r2_an[n_vol], figure_name, path_in)
         n_vol = n_vol + 1
         k = 0
+    print(lin_cur)  #
     # remove data with low R^2
     conc_cat1 = conc[r2_cat > 0.9]
     conc_an1 = conc[r2_an > 0.9]
@@ -210,12 +216,12 @@ def first_regression(cv_result, vol_solute_list, path_in, export, Area, conc):
     return conc_cat, conc_an, slope_cat, slope_an
 
 
-def second_regression(conc_cat, conc_an, slope_cat, slope_an):
+def second_regression(conc_cat, conc_an, slope_cat, slope_an, path_in, solute="HClO_{4}"):
     slope_cat = slope_cat * ((8.314 * 298) ** (1 / 2)) / (0.4463 * (96485 ** (1.5)))
     slope_an = slope_an * ((8.314 * 298) ** (1 / 2)) / (0.4463 * (96485 ** (1.5)))
     regr_catRS = gen_regr(conc_cat, slope_cat)
     regr_anRS = gen_regr(conc_an, slope_an)
-    plots.second_plot(conc_cat, conc_an, regr_catRS, regr_anRS, slope_cat, slope_an)
+    plots.second_plot(conc_cat, conc_an, regr_catRS, regr_anRS, slope_cat, slope_an, solute, path_in)
     Dval_cat = (regr_catRS.params[1] ** 2)
     Derr_cat = abs(2 * regr_catRS.params[1] * regr_catRS.bse[1])
     C_0val_cat = abs(regr_catRS.params[0] / regr_catRS.params[1])

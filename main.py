@@ -70,7 +70,7 @@ mode = input("Select the kind of study that you want to perform: \n\t[CV]-simple
              "\n\t[L]-linearize current/scan rate relation \n\t[RS]-solute concentration effect \n")
 if mode == 'RS':
     vol_in = input("Insert the initial volume of the electrolyte in mL:\t")
-    modes.Randles_Sevcik(path_in, cv_result, export, vol_in, Area)
+    modes.randles_sevcik2(path_in, cv_result, export, vol_in, Area)
 if mode == 'CV':
-    modes.cv(path_in, cv_result, export, Area)
+    modes.cvsurvey(path_in, cv_result, export, Area)
 
