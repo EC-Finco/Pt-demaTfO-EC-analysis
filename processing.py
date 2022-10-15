@@ -243,5 +243,26 @@ def gen_regr(x, y):  # linear regression with statsmodel, add fitted points
     res_fit = smapi.OLS(y, x).fit()
     return res_fit
 
+# new procedures for RANDLES-SEVCIK2
 
 
+def volumes_unique(cvs_list):
+    volumes = []
+    for cv in cvs_list:
+        volumes.append(cv.vol_sol)
+    vol_array = np.unique(volumes)
+    return vol_array, volumes
+
+
+def jp_extraction(cvList):
+    jp_an = []
+    jp_cat = []
+    rates = []
+    for cv in cvList:
+        jp_an.append(cv.peaks.at[1, 'j_pa'])
+        jp_cat.append(cv.peaks.at[0, 'j_pc'])
+        rates.append(cv.rate)
+    rates = np.array(rates)
+    jp_an = np.array(jp_an)
+    jp_cat = np.array(jp_cat)
+    return rates, jp_an, jp_cat

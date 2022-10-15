@@ -113,19 +113,36 @@ class CyclicVoltammetry:
         self.peaks.at[:, 'E1/2'] = (self.peaks['E_pa'][:] + self.peaks['E_pc'][:]) / 2
 
 
+class ChronoAmperometry:
+    def __init__(self, filename, path_in, area):
+        self.CA = []
+        self.U = []
+        self.filename = filename
+        self.path_file = path_in + "/" + filename
+        self.data = pd.read_csv(self.path_file, delimiter="\t", engine='python')
+        self.data.columns = ['Time', 'Current', 'Potential']
+        self.restart_idx = self.data.index[self.data['Time'] == 0].tolist()
+        for i in self.restart_idx:
+            self.CA.append(self.data.loc[i:i+1200, 'Time':'Current'])
+            self.U.append(self.data.loc[i+1200, 'Potential'])
+        print(self.U)
+
+
 class CurrentRateLin:  # input arrays containing data from CVs with same solute concentration
-    def __init__(self, jp, rate):
+    def __init__(self, rate, jp, vol):
+        self.vol = vol
         self.jp = jp
-        self.rate_sq = math.sqrt(rate)
+        self.rate_sq = np.sqrt(rate)
         x = self.rate_sq
         y = self.jp
         # Create linear regression object
         x = smapi.add_constant(x)  # adding the intercept term
-        fit = smapi.OLS(y, x).fit()
+        self.fit = smapi.OLS(y, x).fit()
         # calculate R squared for both
-        self.r2 = fit.rsquared_adj
+        self.r2 = self.fit.rsquared_adj
         # extract fitting parameters
-        self.slope = fit.params[1]
+        self.slope = self.fit.params[1]
+        self.fitted = self.fit.fittedvalues
 
 
 class DiffStudy:

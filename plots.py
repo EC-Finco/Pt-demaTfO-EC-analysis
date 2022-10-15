@@ -84,3 +84,10 @@ def second_plot(conc_cat, conc_an, regr_catRS, regr_anRS, slope_cat, slope_an, s
     plt.savefig(figurename)
     plt.show()
     os.chdir(path_in)
+
+
+def lin_peak_cur_sqrt():
+    plt.xlabel("$v_{s}^{1/2}$ / [mV$^{1/2}$/s$^{1/2}$]", fontsize=20)
+    plt.ylabel(r"$\mathit{j_{p}}$ / [mA cm$^{-2}$]", fontsize=20)
+    plt.legend()
+    plt.tight_layout()

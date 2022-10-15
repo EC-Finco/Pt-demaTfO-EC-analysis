@@ -55,22 +55,29 @@ import warnings
 
 warnings.filterwarnings("ignore", ".*GUI is implemented.*")
 warnings.filterwarnings("ignore", ".*No labelled objects found.*")
-
+# stable definition for code writing
+new_folders = 'n'
+mode = 'CA'
+export = 'n'
+diam = 8
 # insert the path of the spectra
 path_in = input("Type the path of CV: ")
 os.chdir(path_in)
-new_folders = input("create new folders for code output? [y/n]\t")
+# new_folders = input("create new folders for code output? [y/n]\t")
+# mode = input("Select the kind of study that you want to perform: \n\t[CV]-simple CV plotting \n\t[P]-find peaks "
+#            "\n\t[L]-linearize current/scan rate relation \n\t[RS]-solute concentration effect "
+#            "\n\t[CA]-Chronoamperometry")
 path_smoothed, path_peaks = paths.folders_out(path_in, new_folders)
-export = input("Export files? [y/n]\t")
+# export = input("Export files? [y/n]\t")
 # Find relevant CVs in folder
 cv_result = [i for i in glob.glob('cv*.txt')]  # only case-insensitive in Windows
-diam = float(input("Input electrode diameter in millimiters:\t"))
+ca_result = [i for i in glob.glob('ca*.txt')]  # only case-insensitive in Windows
+# diam = float(input("Input electrode diameter in millimeters:\t"))
 Area = math.pi * (diam/20)**2  # area in cm^2
-mode = input("Select the kind of study that you want to perform: \n\t[CV]-simple CV plotting \n\t[P]-find peaks "
-             "\n\t[L]-linearize current/scan rate relation \n\t[RS]-solute concentration effect \n")
 if mode == 'RS':
     vol_in = input("Insert the initial volume of the electrolyte in mL:\t")
     modes.randles_sevcik2(path_in, cv_result, export, vol_in, Area)
 if mode == 'CV':
     modes.cvsurvey(path_in, cv_result, export, Area)
-
+if mode == 'CA':
+    modes.chronoamp(path_in, ca_result, export, Area)

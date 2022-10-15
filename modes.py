@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import class_def
 import plots
 import processing
+import numpy as np
 
 
 def randles_sevcik(path_in, cv_result, export="n", vol_in="5", area="1"):
@@ -32,6 +33,9 @@ def randles_sevcik2(path_in, cv_result, export, vol_in, area):
     solute_conc = float(input("Input solute concentration [mol/L]:\t"))
     solute = input('Type the solute species')
     CVList = []
+    CVVol = []
+    LinListAn = []
+    LinListCat = []
     for i, filename in enumerate(cv_result):
         CV = class_def.CyclicVoltammetry(filename, path_in, area)
         CV.solute_conc(vol_in, solute_conc)
@@ -39,5 +43,34 @@ def randles_sevcik2(path_in, cv_result, export, vol_in, area):
         CVList.append(CV)
         # plots.cv_plot(CV.cv['E'], CV.cv['j'], CV.filename, path_in)
         # plt.show()
-    for cvs in CVList:  #implement further steps and plots
-        print('Scan rate: {}, solute volume: {}'.format(cvs.rate, cvs.vol_sol))
+    cond = processing.volumes_unique(CVList)
+    # tuple of lists of unique values for volume (pos. 0) all values for respective quantities in pos 1
+    for vol in cond[0]:  # collect sqrt(vs) and jp anodic and cathodic for each volume addition
+        index = [idx for idx in range(len(CVList)) if cond[1][idx] == vol]
+        for i in index:
+            CVVol.append(CVList[i])
+        rates, jpa, jpc = processing.jp_extraction(CVVol)
+        LinAn = class_def.CurrentRateLin(rates, jpa, vol)
+        LinCat = class_def.CurrentRateLin(rates, jpc, vol)
+        LinListAn.append(LinAn)
+        LinListCat.append(LinCat)
+        CVVol = []  # fix order of data
+    plt.figure()
+    for LinCat in LinListCat:
+        plt.plot(LinCat.rate_sq, LinCat.jp*1000, 'x', label=LinCat.vol)
+        plt.plot(LinCat.rate_sq, LinCat.fitted*1000, label='%.2f' % LinCat.r2)
+        plots.lin_peak_cur_sqrt()
+    plt.show()
+    # to complete the second regression and fix the plotting
+
+
+# Chronoamperometry analysis
+def chronoamp(path_in, ca_result, export, area):
+    print('Found %d CAs in the folder' % len(ca_result))
+    for i, filename in enumerate(ca_result):
+        CA = class_def.ChronoAmperometry(filename, path_in, area)
+        plt.figure()
+        for data in CA.CA:
+            plt.plot(data['Time'], data['Current'], label='Current')
+        plt.legend()
+        plt.show()
