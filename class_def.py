@@ -4,6 +4,7 @@ import pandas as pd
 import glob
 import re
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+from scipy import integrate
 from scipy.ndimage import uniform_filter1d
 import math
 import paths
@@ -116,17 +117,33 @@ class CyclicVoltammetry:
 class ChronoAmperometry:
     def __init__(self, filename, path_in, area):
         self.CA = []
+        self.CC = []
         self.U = []
         self.filename = filename
         self.path_file = path_in + "/" + filename
         self.data = pd.read_csv(self.path_file, delimiter="\t", engine='python')
         self.data.columns = ['Time', 'Current', 'Potential']
+        self.data['Current'] = self.data['Current'] / area
+        self.data.columns = ['Time', 'Current Density', 'Potential']
         self.restart_idx = self.data.index[self.data['Time'] == 0].tolist()
+        self.restart_idx = self.restart_idx[:-1]  # remove last CA which is usually faulty
         for i in self.restart_idx:
-            self.CA.append(self.data.loc[i:i+1200, 'Time':'Current'])
+            self.CA.append(self.data.loc[i:i+1200, 'Time':'Potential'])
             self.U.append(self.data.loc[i+1200, 'Potential'])
-        print(self.U)
+        self.tare()
+        self.integration()
 
+    def tare(self):
+        min_j = np.zeros(len(self.restart_idx))
+        for i, ca in enumerate(self.CA):
+            min_j[i] = ca['Current Density'].iloc[-1]
+            self.CA[i]['Current Density'] = self.CA[i]['Current Density'] - min_j[i]
+
+    # compute integral
+    def integration(self):
+        for ca in self.CA:
+            self.CC.append(integrate.cumtrapz(ca['Current Density'], ca['Time'], initial=0))
+        print(len(self.CC))
 
 class CurrentRateLin:  # input arrays containing data from CVs with same solute concentration
     def __init__(self, rate, jp, vol):

@@ -55,13 +55,13 @@ import warnings
 
 warnings.filterwarnings("ignore", ".*GUI is implemented.*")
 warnings.filterwarnings("ignore", ".*No labelled objects found.*")
-# stable definition for code writing
+# stable definition for code testing
 new_folders = 'n'
 mode = 'CA'
 export = 'n'
 diam = 8
 # insert the path of the spectra
-path_in = input("Type the path of CV: ")
+path_in = input("Type the path of files: ")
 os.chdir(path_in)
 # new_folders = input("create new folders for code output? [y/n]\t")
 # mode = input("Select the kind of study that you want to perform: \n\t[CV]-simple CV plotting \n\t[P]-find peaks "
