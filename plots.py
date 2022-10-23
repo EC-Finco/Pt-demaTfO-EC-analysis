@@ -91,3 +91,66 @@ def lin_peak_cur_sqrt():
     plt.ylabel(r"$\mathit{j_{p}}$ / [mA cm$^{-2}$]", fontsize=20)
     plt.legend()
     plt.tight_layout()
+
+
+#######   PLOTS FOR CHRONOAMPEROMETRIES ########
+def ca_explore(CA):
+    plt.figure()
+    # plt.plot(CA.data['Time'], label='Time')
+    plt.plot(CA.data['Current Density'], label='Current')
+    plt.plot(CA.data['Potential'], label='Potential')
+    plt.xlabel('Time / s')
+    plt.tight_layout()
+    plt.show()
+
+
+def chrono_amp(CA, export):
+    plt.figure()  # create figure with all CAs from one repetition
+    plt.title(CA.filename)
+    for u, data in enumerate(CA.CA):
+        plt.plot(data['Time'], data['Current Density'], label='%.2f' % CA.U[u])
+    plt.xlim(0.00, 0.01)
+    plt.ylabel('$j$ / A cm$^{-2}$', fontsize=16)
+    plt.xlabel('Time / s', fontsize=16)
+    plt.legend()
+    plt.tight_layout()
+    if export == 'y':
+        for ext in ['png', 'eps']:
+            plotname = CA.filename[:-3] + ext
+            plt.savefig(plotname)
+    plt.show()
+
+
+def c_diff(CA, export):
+    plt.figure()
+    plt.title('Integrated charge', fontsize=18)
+    plt.plot(CA.U, CA.Cdiff)
+    plt.ylabel('C$_{diff}$ / mF cm$^{-2}$', fontsize=16)
+    plt.xlabel('E / V Vs. Pt', fontsize=16)
+    plt.tight_layout()
+    if export == 'y':
+        for ext in ['png', 'eps']:
+            plotname = 'C diff' + CA.filename[:-3] + ext
+            plt.savefig(plotname)
+            plt.show()
+
+
+def chrono_coul(CA, export):
+    plt.figure()  # create figure with all chrono coulometries from one repetition
+    plt.title('Chronocoulometry')
+    for u, data in enumerate(CA.CC):
+        plt.plot(data, label='%.2f' % CA.U[u])
+    plt.xlim(0.00, 0.02)
+    plt.ylabel('$Q$ / C cm$^{-2}$')
+    plt.xlabel('Time / s')
+    plt.legend()
+    plt.show()
+
+
+def ca_3d(CA):
+    # 3D plot
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    for u, data in enumerate(CA.CA):
+        ax.plot_surface(data['Time'], data['Potential'], data['Current Density'], rstride=1, cstride=1,
+                        cmap='viridis', edgecolor='none')

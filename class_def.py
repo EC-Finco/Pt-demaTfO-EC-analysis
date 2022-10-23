@@ -116,23 +116,30 @@ class CyclicVoltammetry:
 
 class ChronoAmperometry:
     def __init__(self, filename, path_in, area):
+        self.Cdiff = None
+        self.Charge = []
         self.CA = []
         self.CC = []
         self.U = []
         self.filename = filename
         self.path_file = path_in + "/" + filename
-        self.data = pd.read_csv(self.path_file, delimiter="\t", engine='python')
+        self.data = pd.read_csv(self.path_file, names=['Corrected time (s)', 'WE(1).Current (A)', 'WE(1).Potential (V)']
+                                , delimiter="	", engine='python', header=0)
         self.data.columns = ['Time', 'Current', 'Potential']
         self.data['Current'] = self.data['Current'] / area
         self.data.columns = ['Time', 'Current Density', 'Potential']
+        print(self.data.head())
         self.restart_idx = self.data.index[self.data['Time'] == 0].tolist()
+        print(self.restart_idx)
         self.restart_idx = self.restart_idx[:-1]  # remove last CA which is usually faulty
         for i in self.restart_idx:
             self.CA.append(self.data.loc[i:i+1200, 'Time':'Potential'])
             self.U.append(self.data.loc[i+1200, 'Potential'])
+        self.U = np.array(self.U)
+        print(self.U)
         self.tare()
         self.integration()
-
+        
     def tare(self):
         min_j = np.zeros(len(self.restart_idx))
         for i, ca in enumerate(self.CA):
@@ -143,7 +150,11 @@ class ChronoAmperometry:
     def integration(self):
         for ca in self.CA:
             self.CC.append(integrate.cumtrapz(ca['Current Density'], ca['Time'], initial=0))
-        print(len(self.CC))
+        for i, cc in enumerate(self.CC):
+            self.Charge.append(cc[-1])
+        self.Charge = np.array(self.Charge, dtype=float)
+        self.Cdiff = self.Charge * 1000 / 0.025  # potential step 25 mV, calculates differential capacitance in mF
+
 
 class CurrentRateLin:  # input arrays containing data from CVs with same solute concentration
     def __init__(self, rate, jp, vol):

@@ -68,19 +68,10 @@ def randles_sevcik2(path_in, cv_result, export, vol_in, area):
 def chronoamp(path_in, ca_result, export, area):
     print('Found %d CAs in the folder' % len(ca_result))
     for i, filename in enumerate(ca_result):
-        CA = class_def.ChronoAmperometry(filename, path_in, area) # create object from a file
-        plt.figure() # create figure with all CAs from one repetition
-        for u, data in enumerate(CA.CA):
-            plt.plot(data['Time'], data['Current Density'], label='%.2f' % CA.U[u])
-        plt.xlim(0.00, 0.01)
-        plt.ylabel('$j$ / A cm$^{-2}$')
-        plt.xlabel('Time / s')
-        plt.legend()
-        plt.show()
+        CA = class_def.ChronoAmperometry(filename, path_in, area)  # create object from a file
+        plots.ca_explore(CA)
+        # export = 'y'
+        # plots.chrono_amp(CA, export)  # plots all the CAs performed at the different potentials
+        # plots.c_diff(CA, export)
 
-        # 3D plot
-        # fig = plt.figure()
-        # ax = plt.axes(projection='3d')
-        # for u, data in enumerate(CA.CA):
-        #     ax.plot_surface(data['Time'], data['Potential'], data['Current Density'], rstride=1, cstride=1,
-        #         cmap='viridis', edgecolor='none')
+
