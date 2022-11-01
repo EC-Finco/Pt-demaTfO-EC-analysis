@@ -93,14 +93,15 @@ def lin_peak_cur_sqrt():
     plt.tight_layout()
 
 
-#######   PLOTS FOR CHRONOAMPEROMETRIES ########
+####### PLOTS FOR CHRONOAMPEROMETRIES ########
 def ca_explore(CA):
     plt.figure()
-    # plt.plot(CA.data['Time'], label='Time')
+    plt.plot(CA.data['Time'], label='Time')
     plt.plot(CA.data['Current Density'], label='Current')
     plt.plot(CA.data['Potential'], label='Potential')
-    plt.xlabel('Time / s')
+    plt.xlabel('index')
     plt.tight_layout()
+    plt.legend()
     plt.show()
 
 
@@ -154,3 +155,12 @@ def ca_3d(CA):
     for u, data in enumerate(CA.CA):
         ax.plot_surface(data['Time'], data['Potential'], data['Current Density'], rstride=1, cstride=1,
                         cmap='viridis', edgecolor='none')
+
+
+def fit_ca(t, y, y_fit, pot):
+    plt.figure()
+    plt.title('CA fitting at .2%f V' % pot)
+    plt.plot(t, y, label="Data")
+    plt.plot(t, y_fit, label="Fit")
+    plt.legend()
+    plt.show()

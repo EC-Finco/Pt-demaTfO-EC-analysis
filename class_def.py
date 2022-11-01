@@ -12,7 +12,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import statsmodels.api as smapi
-
+from scipy.optimize import curve_fit
 import plots
 
 
@@ -123,20 +123,26 @@ class ChronoAmperometry:
         self.U = []
         self.filename = filename
         self.path_file = path_in + "/" + filename
-        self.data = pd.read_csv(self.path_file, names=['Corrected time (s)', 'WE(1).Current (A)', 'WE(1).Potential (V)']
-                                , delimiter="	", engine='python', header=0)
+        self.data_raw = pd.read_csv(self.path_file,
+                                    delimiter="	", na_values=['ND'], engine='python', header=0).dropna()
+        self.data = self.data_raw[['Corrected time (s)', 'WE(1).Current (A)', 'WE(1).Potential (V)']].copy()
         self.data.columns = ['Time', 'Current', 'Potential']
+        self.data['Time'].astype(float)
+        self.data['Current'].astype(float)
+        self.data['Potential'].astype(float)
         self.data['Current'] = self.data['Current'] / area
         self.data.columns = ['Time', 'Current Density', 'Potential']
-        print(self.data.head())
         self.restart_idx = self.data.index[self.data['Time'] == 0].tolist()
-        print(self.restart_idx)
-        self.restart_idx = self.restart_idx[:-1]  # remove last CA which is usually faulty
-        for i in self.restart_idx:
-            self.CA.append(self.data.loc[i:i+1200, 'Time':'Potential'])
-            self.U.append(self.data.loc[i+1200, 'Potential'])
+        # self.restart_idx = self.restart_idx[:-1]  # remove last CA which is usually faulty
+        self.restart_idx = [x for i, x in enumerate(self.restart_idx) if i != 19]
+        # removed 20th element since on that day it was wrong
+        for j, i in enumerate(self.restart_idx):
+            self.CA.append(self.data.loc[i:i+1199, 'Time':'Potential'])  # slicing the raw data into the list of
+            # dataframes
+            self.U.append(self.data.loc[i+1199, 'Potential'])
+            # rewrite the index
+            self.CA[j].index = list(range(1200))
         self.U = np.array(self.U)
-        print(self.U)
         self.tare()
         self.integration()
         
@@ -154,6 +160,17 @@ class ChronoAmperometry:
             self.Charge.append(cc[-1])
         self.Charge = np.array(self.Charge, dtype=float)
         self.Cdiff = self.Charge * 1000 / 0.025  # potential step 25 mV, calculates differential capacitance in mF
+
+    def chrono_fit(self):  # fitting only on the first 0,01 seconds
+        for ca in self.CA:
+            print(ca[1:119])
+            pot = np.average(ca.loc[:119, 'Potential'])
+            print(pot)
+            t = np.array(ca.loc[:119, 'Time'])
+            y = np.array(ca.loc[:119, 'Current Density'])
+            param, param_cov = curve_fit(decay_func, t, y)
+            y_fit = decay_func(t, param[0], param[1], param[2], param[3])
+            plots.fit_ca(t, y, y_fit, pot)
 
 
 class CurrentRateLin:  # input arrays containing data from CVs with same solute concentration
@@ -187,3 +204,8 @@ class DiffStudy:
         self.D_err = abs(2 * fit.params[1] * fit.bse[1])
         self.C_0val = abs(fit.params[0] / fit.params[1])
         self.C_0err = abs(self.C_0val * ((fit.bse[1] / fit.params[1]) + (fit.bse[0] / fit.params[0])))
+
+
+def decay_func(t, R_EDL, C_EDL, P1, P2):
+    PhiS = 0.025  # set amplitude of step
+    return (PhiS / R_EDL) * np.exp(- t / (R_EDL * C_EDL)) + P1 * np.exp(- P2 * t)

@@ -70,8 +70,9 @@ def chronoamp(path_in, ca_result, export, area):
     for i, filename in enumerate(ca_result):
         CA = class_def.ChronoAmperometry(filename, path_in, area)  # create object from a file
         plots.ca_explore(CA)
-        # export = 'y'
-        # plots.chrono_amp(CA, export)  # plots all the CAs performed at the different potentials
-        # plots.c_diff(CA, export)
+        export = 'y'
+        plots.chrono_amp(CA, export)  # plots all the CAs performed at the different potentials
+        plots.c_diff(CA, export)
+        CA.chrono_fit()
 
 
